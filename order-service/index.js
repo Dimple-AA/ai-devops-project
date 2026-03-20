@@ -82,7 +82,6 @@ app.post("/orders", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 app.get("/metrics", async (req, res) => {
   res.set("Content-Type", client.register.contentType);
   res.end(await client.register.metrics());
