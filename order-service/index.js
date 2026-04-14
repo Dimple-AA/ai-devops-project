@@ -43,7 +43,7 @@ async function connectRabbitMQ() {
     }
   }
 }
-// Start connection in background
+
 connectRabbitMQ().catch(console.error);
 
 app.post("/orders", async (req, res) => {
