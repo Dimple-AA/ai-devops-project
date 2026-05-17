@@ -59,7 +59,7 @@ app.post("/orders", async (req, res) => {
     };
 
     if (channel) {
-      channel.sendToQueue("devops_events", Buffer.from(JSON.stringify(event)));
+      //channel.sendToQueue("devops_events", Buffer.from(JSON.stringify(event)));
     }
 
     orderCounter.inc({
