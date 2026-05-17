@@ -45,5 +45,24 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
 
+  node-exporter:
+    image: prom/node-exporter
+    ports:
+      - "9100:9100"
+
+  loki:
+    image: grafana/loki:2.9.0
+    ports:
+      - "3100:3100"
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - ./anomaly.log:/var/log/anomaly.log
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
 volumes:
   jenkins_home:

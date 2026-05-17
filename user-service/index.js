@@ -61,7 +61,7 @@ app.post("/users", async (req, res) => {
     };
 
     if (channel) {
-      channel.sendToQueue("devops_events", Buffer.from(JSON.stringify(event)));
+      //channel.sendToQueue("devops_events", Buffer.from(JSON.stringify(event)));
     }
 
     httpRequestCounter.inc({
