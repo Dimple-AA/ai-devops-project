@@ -37,6 +37,8 @@ services:
       - "3002:3000"
     depends_on:
       - prometheus
+    volumes:
+      - grafana-storage:/var/lib/grafana
 
   jenkins:
     image: jenkins/jenkins:lts
@@ -66,3 +68,4 @@ services:
 
 volumes:
   jenkins_home:
+  grafana-storage:
