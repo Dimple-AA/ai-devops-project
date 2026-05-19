@@ -33,9 +33,9 @@ async function connectRabbitMQ() {
     const connection = await amqp.connect("amqp://localhost");
     channel = await connection.createChannel();
     await channel.assertQueue("anomaly_queue");
-    console.log("✅ Connected to RabbitMQ");
+    console.log("Connected to RabbitMQ");
   } catch (err) {
-    console.log("❌ RabbitMQ Error, retrying...");
+    console.log("RabbitMQ Error, retrying...");
     setTimeout(connectRabbitMQ, 5000);
   }
 }
@@ -57,7 +57,7 @@ async function fetchMetric(query) {
 
     return 0;
   } catch (err) {
-    console.log("❌ Prometheus Error:", err.message);
+    console.log("Prometheus Error:", err.message);
     return 0;
   }
 }
@@ -78,20 +78,25 @@ function updateHistory(history, value) {
 function isAnomaly(history, value, name) {
   if (history.length < 5) return false;
 
+  //The system calculates the average historical behaviour.
   const mean = history.reduce((a, b) => a + b, 0) / history.length;
 
+  //Variance measures how much the data deviates from the average
   const variance =
     history.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
     history.length;
 
+  //The standard deviation is the square root of the variance, providing a measure of how spread out the data is around the mean.
   const std = Math.sqrt(variance);
 
   if (std === 0) return false;
 
+  //Z-score measures how far the current metric deviates from historical behaviour.
   const zScore = (value - mean) / std;
 
   console.log(`${name} Z-score: ${zScore.toFixed(2)}`);
 
+  //If the deviation exceeds the configured threshold, the system classifies it as an anomaly.
   return Math.abs(zScore) > Z_THRESHOLD;
 }
 
@@ -101,7 +106,7 @@ function isAnomaly(history, value, name) {
 async function sendToRabbitMQ(message) {
   try {
     if (!channel) {
-      console.log("⚠️ RabbitMQ channel not ready");
+      console.log("RabbitMQ channel not ready");
       return;
     }
 
@@ -109,9 +114,9 @@ async function sendToRabbitMQ(message) {
 
     channel.sendToQueue("anomaly_queue", Buffer.from(message));
 
-    console.log("📤 Sent:", message);
+    console.log("Sent:", message);
   } catch (err) {
-    console.log("❌ RabbitMQ Send Error:", err.message);
+    console.log("RabbitMQ Send Error:", err.message);
 
     // reconnect
     await connectRabbitMQ();
@@ -123,14 +128,14 @@ function logAnomaly(message) {
 
   fs.appendFileSync("../anomaly.log", logMessage);
 
-  console.log("📝 Logged:", message);
+  console.log("Logged:", message);
 }
 
 // -----------------------------
 // Main Loop
 // -----------------------------
 async function monitor() {
-  console.log("🚀 AI Anomaly Detection Started...\n");
+  console.log("AI Anomaly Detection Started...\n");
 
   while (true) {
     try {
@@ -139,9 +144,9 @@ async function monitor() {
       const cpuVal = await fetchMetric(CPU_QUERY);
 
       console.log("\n==============================");
-      console.log(`📊 Order Traffic: ${orderVal}`);
-      console.log(`👤 User Traffic: ${userVal}`);
-      console.log(`💻 CPU Usage: ${cpuVal.toFixed(2)}%`);
+      console.log(`Order Traffic: ${orderVal}`);
+      console.log(`User Traffic: ${userVal}`);
+      console.log(`CPU Usage: ${cpuVal.toFixed(2)}%`);
 
       // Update history
       updateHistory(orderHistory, orderVal);
@@ -156,34 +161,37 @@ async function monitor() {
 
       // Actions
       if (orderAnomaly) {
-        const msg = "🚨 AI Detected Anomaly in Order Service Traffic";
+        const msg = "AI Detected Anomaly in Order Service Traffic";
         console.log(msg);
         sendToRabbitMQ(msg);
         logAnomaly(msg);
       }
 
       if (userAnomaly) {
-        const msg = "🚨 AI Detected Anomaly in User Service Traffic";
+        const msg = "AI Detected Anomaly in User Service Traffic";
         console.log(msg);
         sendToRabbitMQ(msg);
+        logAnomaly(msg);
       }
 
       if (cpuAnomaly) {
-        const msg = "🚨 AI Detected Anomaly in CPU Usage";
+        const msg = "AI Detected Anomaly in CPU Usage";
         console.log(msg);
         sendToRabbitMQ(msg);
+        logAnomaly(msg);
       }
 
       if (orderAnomaly && userAnomaly) {
-        const msg = "🔥 CRITICAL: Multi-service anomaly detected";
+        const msg = "CRITICAL: Multi-service anomaly detected";
         console.log(msg);
         sendToRabbitMQ(msg);
+        logAnomaly(msg);
       }
 
       // Wait 10 sec
       await new Promise((res) => setTimeout(res, 10000));
     } catch (err) {
-      console.log("❌ Error:", err.message);
+      console.log("Error:", err.message);
     }
   }
 }
